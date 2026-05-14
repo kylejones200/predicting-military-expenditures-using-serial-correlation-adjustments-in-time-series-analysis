@@ -1,7 +1,7 @@
 # Predicting Military Expenditures using Serial Correlation Adjustments in Time Series Analysis
 
-**Published:** 2025-03-09
-**Medium:** [https://medium.com/@kyle-t-jones/predicting-military-expenditures-using-serial-correlation-adjustments-in-time-series-analysis-2b4b3df790b0](https://medium.com/@kyle-t-jones/predicting-military-expenditures-using-serial-correlation-adjustments-in-time-series-analysis-2b4b3df790b0)
+Published: 2025-03-09
+Medium: [https://medium.com/@kyle-t-jones/predicting-military-expenditures-using-serial-correlation-adjustments-in-time-series-analysis-2b4b3df790b0](https://medium.com/@kyle-t-jones/predicting-military-expenditures-using-serial-correlation-adjustments-in-time-series-analysis-2b4b3df790b0)
 
 ## About
 
