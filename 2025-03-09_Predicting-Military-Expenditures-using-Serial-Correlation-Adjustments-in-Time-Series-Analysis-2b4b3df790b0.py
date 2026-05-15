@@ -4,7 +4,6 @@
 
 from statsmodels.stats.diagnostic import acorr_breusch_godfrey
 import logging
-import pandas as pd
 import statsmodels.api as sm
 
 logger = logging.getLogger(__name__)
