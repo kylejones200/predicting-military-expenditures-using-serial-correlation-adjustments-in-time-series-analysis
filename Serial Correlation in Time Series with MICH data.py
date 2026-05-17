@@ -1,17 +1,12 @@
 from PIL import Image
 from datetime import datetime
 from pandas_datareader import data as web
-from statsmodels.regression.linear_model import GLS, GLSAR
-from statsmodels.stats.diagnostic import acorr_breusch_godfrey
 from statsmodels.tsa.seasonal import seasonal_decompose
-from visualization import plot_time_series, plot_decomposition
 import matplotlib.animation as animation
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
-import statsmodels.graphics.tsaplots as tsaplots
 
 def get_fred_data(series_id, start_date='2000-01-01', end_date=None):
     if end_date is None:
@@ -39,74 +34,98 @@ def update_plot(i):
     plt.tight_layout()
 
 
-def main() -> None:
-    https://fred.stlouisfed.org/series/MICH
+def notebook_step_001() -> None:
+    'Generated from Jupyter notebook: Serial Correlation in Time Series with MICH data\n\nMagics and shell lines are commented out. Run with a normal Python interpreter.'
 
-    series_id = 'MICH'
 
+def notebook_step_002() -> None:
+    # https://fred.stlouisfed.org/series/MICH
+    pass
+
+
+def function_to_fetch_data_from_fred() -> None:
+    import numpy as np
+    import pandas as pd
+    import statsmodels.api as sm
+    import statsmodels.graphics.tsaplots as tsaplots
+    from statsmodels.stats.diagnostic import acorr_breusch_godfrey
+    from statsmodels.regression.linear_model import GLS, GLSAR
+    from datetime import datetime
+    from pandas_datareader import data as web
+    import matplotlib.pyplot as plt
+    from visualization import plot_time_series, plot_decomposition
+
+    # Function to fetch data from FRED
+    def get_fred_data(series_id, start_date="2000-01-01", end_date=None):
+        if end_date is None:
+            end_date = datetime.now().strftime("%Y-%m-%d")
+        df = web.DataReader(series_id, 'fred', start_date, end_date)
+        return df.dropna()
+
+    # Fetch University of Michigan Consumer Sentiment Index (MICH)
+    series_id = "MICH"
     mich_data = get_fred_data(series_id)
+    mich_data = mich_data.pct_change().dropna()  # Convert to percentage change
 
-    mich_data = mich_data.pct_change().dropna()
+    # Prepare DataFrame
+    mich_data = mich_data.rename(columns={series_id: "MICH"})
+    mich_data["Date"] = mich_data.index  # Ensure a date column for plotting
 
-    mich_data = mich_data.rename(columns={series_id: 'MICH'})
-
-    mich_data['Date'] = mich_data.index
-
+    # Create lagged MICH values
     for lag in range(1, 3):
-        mich_data[f'MICH_lag{lag}'] = mich_data['MICH'].shift(lag)
+        mich_data[f"MICH_lag{lag}"] = mich_data["MICH"].shift(lag)
 
+    # Drop missing values due to lagging
     mich_data.dropna(inplace=True)
 
-    X_lags = ['MICH', 'MICH_lag1', 'MICH_lag2']
+    # Define independent and dependent variables
+    X_lags = ["MICH", "MICH_lag1", "MICH_lag2"]
+    X_matrix = sm.add_constant(mich_data[X_lags])  # Add intercept
+    y_vector = mich_data["MICH"]  # Target is MICH itself (can be changed)
 
-    X_matrix = sm.add_constant(mich_data[X_lags])
-
-    y_vector = mich_data['MICH']
-
+    # Fit a distributed lag model
     model = sm.OLS(y_vector, X_matrix).fit()
 
+    # Perform the Breusch-Godfrey test for serial correlation
     bg_test = acorr_breusch_godfrey(model, nlags=2)
+    print(f"Breusch-Godfrey Test p-value: {bg_test[1]:.4f}")
 
-    print(f'Breusch-Godfrey Test p-value: {bg_test[1]:.4f}')
-
+    # Generalized Least Squares (GLS)
     gls_model = GLS(y_vector, X_matrix).fit()
-
     print(gls_model.summary())
 
+    # Cochrane-Orcutt Method
     cochrane_orcutt = GLSAR(y_vector, X_matrix, rho=1).iterative_fit()
-
     print(cochrane_orcutt.summary())
 
-    model_robust = model.get_robustcov_results(cov_type='HAC', maxlags=2)
-
+    # Newey-West Standard Errors
+    model_robust = model.get_robustcov_results(cov_type="HAC", maxlags=2)
     print(model_robust.summary())
 
+    # Visualizing Serial Correlation
     residuals = model.resid
-
     plt.figure(figsize=(10, 5))
-
     tsaplots.plot_acf(residuals, lags=20, alpha=0.05)
-
-    plt.xlabel('Lag')
-
-    plt.ylabel('Autocorrelation')
-
-    plt.title('Autocorrelation of Residuals')
-
-    plt.savefig('residual_acf.png')
-
+    plt.xlabel("Lag")
+    plt.ylabel("Autocorrelation")
+    plt.title("Autocorrelation of Residuals")
+    plt.savefig("residual_acf.png")
     plt.show()
 
-    time_column = 'Date'
+    # Visualizing MICH Data
+    time_column = "Date"
+    value_columns = ["MICH", "MICH_lag1", "MICH_lag2"]
+    plot_time_series(mich_data, time_column, value_columns, title="MICH Time Series")
 
-    value_columns = ['MICH', 'MICH_lag1', 'MICH_lag2']
+    # Perform and plot decomposition
+    plot_decomposition(mich_data["MICH"], model="additive", title="MICH Decomposition")
 
-    plot_time_series(mich_data, time_column, value_columns, title='MICH Time Series')
 
-    plot_decomposition(mich_data['MICH'], model='additive', title='MICH Decomposition')
-
+def notebook_step_004() -> None:
     print(model.summary())
 
+
+def function_to_fetch_data_from_fred_2() -> None:
     series_id = 'MICH'
 
     mich_data = get_fred_data(series_id)
@@ -129,8 +148,10 @@ def main() -> None:
 
     print(f'GIF saved at {gif_path}')
 
+
+def initial_version_notebook_markdown() -> None:
     """
-    initial version
+    # initial version  # notebook markdown
     """
 
     import numpy as np
@@ -168,26 +189,15 @@ def main() -> None:
     bg_test = acorr_breusch_godfrey(model, nlags=2)
     print(f"Breusch-Godfrey Test p-value: {bg_test[1]:.4f}")
     # If p-value < 0.05, serial correlation is present.
-    If the p-value < 0.05, we reject the null hypothesis of no serial correlation, indicating that our model suffers from autocorrelation.
-    4. Addressing Serial Correlation
-    If serial correlation is detected, there are several ways to correct it:
-    1. Generalized Least Squares (GLS)
-    GLS modifies OLS by accounting for the structure of the serial correlation:
-    from statsmodels.regression.linear_model import GLS
+    from statsmodels.regression.linear_model import GLS, GLSAR
+    import statsmodels.graphics.tsaplots as tsaplots
+
     gls_model = GLS(y_vector, X_matrix).fit()
     print(gls_model.summary())
-    2. Cochrane-Orcutt Method
-    This iterative procedure transforms the regression model to eliminate serial correlation.
-    from statsmodels.regression.linear_model import GLSAR
     cochrane_orcutt = GLSAR(y_vector, X_matrix, rho=1).iterative_fit()
     print(cochrane_orcutt.summary())
-    3. Newey-West Standard Errors
-    If correcting the model structure is not feasible, robust standard errors (Newey-West) provide valid inference.
     model_robust = model.get_robustcov_results(cov_type="HAC", maxlags=2)
     print(model_robust.summary())
-    5. Visualizing Serial Correlation
-    To diagnose serial correlation, we can plot the Autocorrelation Function (ACF) of the residuals.
-    import statsmodels.graphics.tsaplots as tsaplots
     # Extract residuals
     residuals = model.resid
     # Plot ACF
@@ -198,6 +208,15 @@ def main() -> None:
     plt.title("Autocorrelation of Residuals")
     plt.savefig("/mnt/data/residual_acf.png")
     plt.show()
+
+
+def main() -> None:
+    notebook_step_001()
+    notebook_step_002()
+    function_to_fetch_data_from_fred()
+    notebook_step_004()
+    function_to_fetch_data_from_fred_2()
+    initial_version_notebook_markdown()
 
 if __name__ == "__main__":
     main()
