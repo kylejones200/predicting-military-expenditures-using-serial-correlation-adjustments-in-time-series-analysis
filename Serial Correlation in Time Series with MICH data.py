@@ -1,41 +1,49 @@
-from PIL import Image
 from datetime import datetime
-from pandas_datareader import data as web
-from statsmodels.tsa.seasonal import seasonal_decompose
+
 import matplotlib.animation as animation
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pandas_datareader import data as web
+from statsmodels.tsa.seasonal import seasonal_decompose
 
-def get_fred_data(series_id, start_date='2000-01-01', end_date=None):
+
+def get_fred_data(series_id, start_date="2000-01-01", end_date=None):
     if end_date is None:
-        end_date = datetime.now().strftime('%Y-%m-%d')
-    df = web.DataReader(series_id, 'fred', start_date, end_date)
+        end_date = datetime.now().strftime("%Y-%m-%d")
+    df = web.DataReader(series_id, "fred", start_date, end_date)
     return df.dropna()
+
 
 def update_plot(i):
     for ax in axes:
         ax.clear()
-    axes[0].plot(mich_data['Date'][:i], mich_data['MICH'][:i], label='Original', color='black')
-    axes[0].set_title('Original Series')
-    axes[1].plot(mich_data['Date'][:i], decomposition.trend[:i], label='Trend', color='black')
-    axes[1].set_title('Trend')
-    axes[2].plot(mich_data['Date'][:i], decomposition.resid[:i], label='Residual', color='black')
-    axes[2].set_title('Residual')
+    axes[0].plot(
+        mich_data["Date"][:i], mich_data["MICH"][:i], label="Original", color="black"
+    )
+    axes[0].set_title("Original Series")
+    axes[1].plot(
+        mich_data["Date"][:i], decomposition.trend[:i], label="Trend", color="black"
+    )
+    axes[1].set_title("Trend")
+    axes[2].plot(
+        mich_data["Date"][:i], decomposition.resid[:i], label="Residual", color="black"
+    )
+    axes[2].set_title("Residual")
     for ax in axes:
-        ax.set_xlim(mich_data['Date'].min(), mich_data['Date'].max())
+        ax.set_xlim(mich_data["Date"].min(), mich_data["Date"].max())
         ax.xaxis.set_major_locator(mdates.YearLocator(10))
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_position(('outward', 5))
-        ax.spines['bottom'].set_position(('outward', 5))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_position(("outward", 5))
+        ax.spines["bottom"].set_position(("outward", 5))
     plt.tight_layout()
 
 
 def notebook_step_001() -> None:
-    'Generated from Jupyter notebook: Serial Correlation in Time Series with MICH data\n\nMagics and shell lines are commented out. Run with a normal Python interpreter.'
+    "Generated from Jupyter notebook: Serial Correlation in Time Series with MICH data\n\nMagics and shell lines are commented out. Run with a normal Python interpreter."
 
 
 def notebook_step_002() -> None:
@@ -44,64 +52,54 @@ def notebook_step_002() -> None:
 
 
 def function_to_fetch_data_from_fred() -> None:
-    import numpy as np
-    import pandas as pd
+    from datetime import datetime
+
+    import matplotlib.pyplot as plt
     import statsmodels.api as sm
     import statsmodels.graphics.tsaplots as tsaplots
-    from statsmodels.stats.diagnostic import acorr_breusch_godfrey
-    from statsmodels.regression.linear_model import GLS, GLSAR
-    from datetime import datetime
     from pandas_datareader import data as web
-    import matplotlib.pyplot as plt
-    from visualization import plot_time_series, plot_decomposition
+    from statsmodels.regression.linear_model import GLS, GLSAR
+    from statsmodels.stats.diagnostic import acorr_breusch_godfrey
+    from visualization import plot_decomposition, plot_time_series
 
     # Function to fetch data from FRED
     def get_fred_data(series_id, start_date="2000-01-01", end_date=None):
         if end_date is None:
             end_date = datetime.now().strftime("%Y-%m-%d")
-        df = web.DataReader(series_id, 'fred', start_date, end_date)
+        df = web.DataReader(series_id, "fred", start_date, end_date)
         return df.dropna()
 
     # Fetch University of Michigan Consumer Sentiment Index (MICH)
     series_id = "MICH"
     mich_data = get_fred_data(series_id)
     mich_data = mich_data.pct_change().dropna()  # Convert to percentage change
-
     # Prepare DataFrame
     mich_data = mich_data.rename(columns={series_id: "MICH"})
     mich_data["Date"] = mich_data.index  # Ensure a date column for plotting
-
     # Create lagged MICH values
     for lag in range(1, 3):
         mich_data[f"MICH_lag{lag}"] = mich_data["MICH"].shift(lag)
 
     # Drop missing values due to lagging
     mich_data.dropna(inplace=True)
-
     # Define independent and dependent variables
     X_lags = ["MICH", "MICH_lag1", "MICH_lag2"]
     X_matrix = sm.add_constant(mich_data[X_lags])  # Add intercept
     y_vector = mich_data["MICH"]  # Target is MICH itself (can be changed)
-
     # Fit a distributed lag model
     model = sm.OLS(y_vector, X_matrix).fit()
-
     # Perform the Breusch-Godfrey test for serial correlation
     bg_test = acorr_breusch_godfrey(model, nlags=2)
     print(f"Breusch-Godfrey Test p-value: {bg_test[1]:.4f}")
-
     # Generalized Least Squares (GLS)
     gls_model = GLS(y_vector, X_matrix).fit()
     print(gls_model.summary())
-
     # Cochrane-Orcutt Method
     cochrane_orcutt = GLSAR(y_vector, X_matrix, rho=1).iterative_fit()
     print(cochrane_orcutt.summary())
-
     # Newey-West Standard Errors
     model_robust = model.get_robustcov_results(cov_type="HAC", maxlags=2)
     print(model_robust.summary())
-
     # Visualizing Serial Correlation
     residuals = model.resid
     plt.figure(figsize=(10, 5))
@@ -111,12 +109,10 @@ def function_to_fetch_data_from_fred() -> None:
     plt.title("Autocorrelation of Residuals")
     plt.savefig("residual_acf.png")
     plt.show()
-
     # Visualizing MICH Data
     time_column = "Date"
     value_columns = ["MICH", "MICH_lag1", "MICH_lag2"]
     plot_time_series(mich_data, time_column, value_columns, title="MICH Time Series")
-
     # Perform and plot decomposition
     plot_decomposition(mich_data["MICH"], model="additive", title="MICH Decomposition")
 
@@ -126,38 +122,28 @@ def notebook_step_004() -> None:
 
 
 def function_to_fetch_data_from_fred_2() -> None:
-    series_id = 'MICH'
-
+    series_id = "MICH"
     mich_data = get_fred_data(series_id)
-
     mich_data = mich_data.pct_change().dropna()
-
-    mich_data = mich_data.rename(columns={series_id: 'MICH'})
-
-    mich_data['Date'] = mich_data.index
-
-    decomposition = seasonal_decompose(mich_data['MICH'], model='additive', period=10)
-
+    mich_data = mich_data.rename(columns={series_id: "MICH"})
+    mich_data["Date"] = mich_data.index
+    seasonal_decompose(mich_data["MICH"], model="additive", period=10)
     fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
-
-    ani = animation.FuncAnimation(fig, update_plot, frames=len(mich_data), interval=100, repeat=False)
-
-    gif_path = 'mich_decomposition_animation.gif'
-
-    ani.save(gif_path, writer='pillow', fps=10)
-
-    print(f'GIF saved at {gif_path}')
+    ani = animation.FuncAnimation(
+        fig, update_plot, frames=len(mich_data), interval=100, repeat=False
+    )
+    gif_path = "mich_decomposition_animation.gif"
+    ani.save(gif_path, writer="pillow", fps=10)
+    print(f"GIF saved at {gif_path}")
 
 
 def initial_version_notebook_markdown() -> None:
     """
     # initial version  # notebook markdown
     """
-
-    import numpy as np
-    import pandas as pd
     import statsmodels.api as sm
     from statsmodels.stats.diagnostic import acorr_breusch_godfrey
+
     # Set seed for reproducibility
     np.random.seed(42)
     # Generate independent variable (advertising spend)
@@ -173,7 +159,7 @@ def initial_version_notebook_markdown() -> None:
     beta = [0.5, 0.3, 0.1]
     Y = np.zeros(n)
     for t in range(2, n):
-        Y[t] = beta[0] * X[t] + beta[1] * X[t-1] + beta[2] * X[t-2] + errors[t]
+        Y[t] = beta[0] * X[t] + beta[1] * X[t - 1] + beta[2] * X[t - 2] + errors[t]
     # Convert to DataFrame
     data = pd.DataFrame({"Y": Y, "X": X})
     for lag in range(1, 3):
@@ -189,8 +175,8 @@ def initial_version_notebook_markdown() -> None:
     bg_test = acorr_breusch_godfrey(model, nlags=2)
     print(f"Breusch-Godfrey Test p-value: {bg_test[1]:.4f}")
     # If p-value < 0.05, serial correlation is present.
-    from statsmodels.regression.linear_model import GLS, GLSAR
     import statsmodels.graphics.tsaplots as tsaplots
+    from statsmodels.regression.linear_model import GLS, GLSAR
 
     gls_model = GLS(y_vector, X_matrix).fit()
     print(gls_model.summary())
@@ -217,6 +203,7 @@ def main() -> None:
     notebook_step_004()
     function_to_fetch_data_from_fred_2()
     initial_version_notebook_markdown()
+
 
 if __name__ == "__main__":
     main()
