@@ -11,14 +11,7 @@ We expect serial correlation in the residuals because this is time series data. 
 
 I am using the National Material Capabilities (NMC) dataset (Version 6.0), which covers military and industrial indicators for countries from 1816 to 2016. Key variables include:
 
-## About
 
-Place the code for this article in this repository.
-The original article export is saved as `article.md`.
-
-## Files
-
-Add your `.ipynb`, `.py`, `.yaml`, `.js`, `.ts`, or other project files here.
 
 ## Disclaimer
 
